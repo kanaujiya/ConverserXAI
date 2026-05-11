@@ -19,6 +19,19 @@ export default function RootLayout({
       lang="en"
       className="h-full antialiased"
     >
+      <head>
+        <link rel="dns-prefetch" href="//api.groq.com" />
+        <link rel="dns-prefetch" href="//api.d-id.com" />
+        <link rel="dns-prefetch" href="//api.openai.com" />
+        <link rel="preconnect" href="https://api.groq.com" crossOrigin="" />
+        <link rel="preconnect" href="https://api.d-id.com" crossOrigin="" />
+        <link rel="preconnect" href="https://api.openai.com" crossOrigin="" />
+        <link
+          rel="preload"
+          as="image"
+          href="https://create-images-results.d-id.com/DefaultPresenters/Noelle_f/image.png"
+        />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ErrorBoundary>
           <Providers>

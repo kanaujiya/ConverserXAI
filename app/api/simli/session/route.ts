@@ -21,6 +21,8 @@ export async function POST() {
   try {
     const res = await fetch(`${SIMLI_API_URL}/compose/token`, {
       method: 'POST',
+      keepalive: true,
+      signal: AbortSignal.timeout(8000),
       headers: {
         'Content-Type': 'application/json',
         'x-simli-api-key': apiKey,
@@ -44,7 +46,15 @@ export async function POST() {
     const iceServers = await generateIceServers(apiKey);
     console.log('[Simli] Returning ICE servers count:', iceServers?.length);
     
-    return NextResponse.json({ ...data, ice_servers: iceServers }); // { session_token: '...', ice_servers: [...] }
+    return NextResponse.json(
+      { ...data, ice_servers: iceServers },
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+          Connection: 'keep-alive',
+        },
+      }
+    ); // { session_token: '...', ice_servers: [...] }
   } catch (err: any) {
     console.error('[Simli] Session fetch error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

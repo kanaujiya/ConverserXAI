@@ -37,7 +37,7 @@ import { PerfLogger } from '@/lib/perf-logger';
 
 const MAX_CONNECTION_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
-const AVATAR_READY_WAIT_MAX_MS = 600;
+const AVATAR_READY_WAIT_MAX_MS = 300;
 const TALK_RETRY_BASE_DELAY_MS = 200;
 // Module-level lock — prevents concurrent connect() calls across React Strict Mode remounts
 let globalIsConnecting = false;
@@ -250,8 +250,8 @@ export function useAvatar() {
           connectionRetriesRef.current = 0;
         } else if (state === 'disconnected') {
           // D-ID may drop the peer connection after a session ends or during idle.
-          // Wait 4s and reconnect if still disconnected (not just a transient blip).
-          console.warn('[WebRTC] ICE disconnected — waiting 4s before reconnect...');
+          // Reconnect quickly if disconnection persists to avoid first-segment lag.
+          console.warn('[WebRTC] ICE disconnected — waiting 2s before reconnect...');
           dispatch(setConnectionStatus('poor'));
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
@@ -263,7 +263,7 @@ export function useAvatar() {
               dispatch(setAvatarReady(false));
               disconnect().then(() => connect());
             }
-          }, 4000);
+          }, 2000);
         } else if (state === 'failed') {
           console.error('[WebRTC] ICE FAILED');
           if (connectionRetriesRef.current < MAX_CONNECTION_RETRIES) {

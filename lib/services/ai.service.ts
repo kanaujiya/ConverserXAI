@@ -26,9 +26,14 @@ export class AIService {
       try {
         const response = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/plain',
+            'Cache-Control': 'no-store',
+          },
           body: JSON.stringify({ message, history }),
           signal: controller.signal,
+          keepalive: true,
         });
 
         clearTimeout(timeoutId);

@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     const res = await fetch(`${DID_API_URL}/talks/streams/${streamId}`, {
       method: 'POST',
       headers: getHeaders(),
+      keepalive: true,
+      signal: AbortSignal.timeout(8000),
       body: JSON.stringify({
         script: {
           type: 'text',
@@ -35,14 +37,37 @@ export async function POST(req: Request) {
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`[API] D-ID talk request failed with status ${res.status}:`, errorText);
-      return NextResponse.json({ error: errorText }, { status: res.status });
+      return NextResponse.json(
+        { error: errorText },
+        {
+          status: res.status,
+          headers: {
+            'Cache-Control': 'no-store',
+            Connection: 'keep-alive',
+          },
+        }
+      );
     }
     
     const data = await res.json();
     console.log(`[API] D-ID talk request successful:`, data.id);
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store',
+        Connection: 'keep-alive',
+      },
+    });
   } catch (error: any) {
     console.error(`[API] Talk route error:`, error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message },
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store',
+          Connection: 'keep-alive',
+        },
+      }
+    );
   }
 }

@@ -36,6 +36,8 @@ export async function POST(req: Request) {
     if (process.env.OPENAI_API_KEY) {
       const res = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
+        keepalive: true,
+        signal: AbortSignal.timeout(12_000),
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
@@ -72,7 +74,9 @@ export async function POST(req: Request) {
           headers: { 
             'Content-Type': 'audio/pcm', 
             'Content-Length': String(pcm16.byteLength),
-            'X-Audio-Duration': String(pcm16.byteLength / (TARGET_RATE * 2)) // length / (rate * 2 bytes per sample)
+            'X-Audio-Duration': String(pcm16.byteLength / (TARGET_RATE * 2)), // length / (rate * 2 bytes per sample)
+            'Cache-Control': 'no-store',
+            Connection: 'keep-alive',
           },
         });
       }
