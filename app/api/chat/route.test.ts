@@ -69,7 +69,10 @@ describe('POST /api/chat', () => {
     mockedStreamText.mockImplementation(() => {
       throw new Error('API down');
     });
-    const res = await POST(makeRequest({ message: 'hello', history: [] }));
+    // Distinct message avoids semantic cache hit from the streamed-response test above.
+    const res = await POST(
+      makeRequest({ message: 'force-llm-error-not-cached', history: [] }),
+    );
     expect(res.status).toBe(500);
   });
 });

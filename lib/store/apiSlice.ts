@@ -4,30 +4,34 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
   endpoints: (builder) => ({
-    generateAvatar: builder.mutation<{ talkId: string }, { text: string }>({
-      query: (body) => ({
-        url: '/avatar',
-        method: 'POST',
-        body,
-      }),
-    }),
-    checkAvatarStatus: builder.query<{ status: string; videoUrl: string | null; error?: string }, string>({
-      query: (talkId) => `/avatar?id=${talkId}`,
-    }),
-    createStreamSession: builder.mutation<{ id: string; session_id: string; offer: any; ice_servers: any[] }, void>({
+    createStreamSession: builder.mutation<
+      {
+        id: string;
+        session_id: string;
+        offer: RTCSessionDescriptionInit;
+        ice_servers: RTCIceServer[];
+      },
+      void
+    >({
       query: () => ({
         url: '/avatar/stream',
         method: 'POST',
       }),
     }),
-    submitIceCandidate: builder.mutation<void, { streamId: string; sessionId: string; candidate: any; sdpMid: string; sdpMLineIndex: number }>({
+    submitIceCandidate: builder.mutation<
+      void,
+      { streamId: string; sessionId: string; candidate: unknown; sdpMid: string; sdpMLineIndex: number }
+    >({
       query: ({ streamId, sessionId, ...body }) => ({
         url: '/avatar/stream/ice',
         method: 'POST',
         body: { streamId, sessionId, ...body },
       }),
     }),
-    submitSdpAnswer: builder.mutation<void, { streamId: string; sessionId: string; answer: any }>({
+    submitSdpAnswer: builder.mutation<
+      void,
+      { streamId: string; sessionId: string; answer: unknown }
+    >({
       query: ({ streamId, sessionId, ...body }) => ({
         url: '/avatar/stream/sdp',
         method: 'POST',
@@ -51,13 +55,10 @@ export const apiSlice = createApi({
   }),
 });
 
-export const { 
-  useGenerateAvatarMutation, 
-  useCheckAvatarStatusQuery,
-  useLazyCheckAvatarStatusQuery,
+export const {
   useCreateStreamSessionMutation,
   useSubmitIceCandidateMutation,
   useSubmitSdpAnswerMutation,
   useSubmitTalkMutation,
-  useCloseStreamSessionMutation
+  useCloseStreamSessionMutation,
 } = apiSlice;

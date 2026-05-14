@@ -1,6 +1,5 @@
 import { ChatMessage } from '../types';
 import { mapError } from '../utils/error-mapping';
-import { syncManager } from '../sync-manager';
 
 export class AIService {
   static async streamChat(

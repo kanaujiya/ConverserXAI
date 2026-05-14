@@ -1,7 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
-// import { useSimliAvatar } from './useSimliAvatar'; // Simli integration (currently disabled)
 import { useAvatar } from './useAvatar';
 import { useAppSelector } from '@/lib/store/hooks';
 
@@ -21,19 +20,18 @@ const AvatarContext = createContext<AvatarContextType | null>(null);
 
 export function AvatarProvider({ children }: { children: ReactNode }) {
   const videoUrl = useAppSelector((state) => state.app.videoUrl);
-  // const simli = useSimliAvatar(); // Simli integration (currently disabled)
-  const did = useAvatar();
+  const avatar = useAvatar();
 
   const value: AvatarContextType = {
-    connect: did.connect,
-    speak: did.speak,
-    disconnect: did.disconnect,
+    connect: avatar.connect,
+    speak: avatar.speak,
+    disconnect: avatar.disconnect,
     videoUrl: videoUrl,
-    videoElementRef: did.videoElementRef as React.RefObject<HTMLVideoElement | null>,
-    audioElementRef: { current: null }, // D-ID handles audio via the video stream
-    didVideoElementRef: did.videoElementRef as React.RefObject<HTMLVideoElement | null>,
-    isProcessing: did.isProcessing,
-    clearQueue: did.clearQueue,
+    videoElementRef: avatar.videoElementRef as React.RefObject<HTMLVideoElement | null>,
+    audioElementRef: { current: null }, // Lip-sync audio is muxed into the WebRTC video stream
+    didVideoElementRef: avatar.videoElementRef as React.RefObject<HTMLVideoElement | null>,
+    isProcessing: avatar.isProcessing,
+    clearQueue: avatar.clearQueue,
   };
 
   return <AvatarContext.Provider value={value}>{children}</AvatarContext.Provider>;

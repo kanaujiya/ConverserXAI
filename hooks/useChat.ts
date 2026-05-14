@@ -28,7 +28,15 @@ const QUEUE_DRAIN_TIMEOUT_MS = 5000;
 const MIN_SEGMENT_CHARS = 8;
 const MAX_HISTORY_MESSAGES = 12;
 const FAST_FIRST_SEGMENT_MAX_CHARS = 20;
-const FAST_FIRST_SEGMENT_MIN_WORDS = 2;
+/** Short replies stay one avatar segment (comma “fast split” disabled). */
+const FAST_SPLIT_MAX_TOTAL_CHARS = 72;
+/** Comma must be this far in so we never split after brief greetings like “Hi again,”. */
+const FAST_SPLIT_MIN_COMMA_INDEX = 22;
+/** Require a full clause before comma before splitting (avoids 2-word + tail segments). */
+const FAST_SPLIT_MIN_WORDS_BEFORE_COMMA = 4;
+/** Remainder after a comma split must be substantial enough to stand as its own utterance. */
+const FAST_SPLIT_MIN_REST_CHARS = 14;
+const FAST_SPLIT_MIN_REST_WORDS = 2;
 
 /** If phrase ends on one of these, include the next word when present (avoids "each" | "other"). */
 const EARLY_CUT_JOINERS: Record<string, string> = {
@@ -68,6 +76,20 @@ function normalizeForDedup(text: string): string {
     .toLowerCase();
 }
 
+function countWords(s: string): number {
+  return s.trim().split(/\s+/).filter(Boolean).length;
+}
+
+/** Avoid early avatar submit while the model is still inside a comma clause (reduces robotic micro-chunks). */
+function endsWithIncompleteClauseBoundary(s: string): boolean {
+  const t = s.trimEnd();
+  if (!t) return false;
+  if (t.endsWith(',')) return true;
+  // Mid-sentence dash or colon — usually better to wait for more tokens
+  if (t.endsWith('—') || t.endsWith(':')) return true;
+  return false;
+}
+
 export function useChat() {
   const [isGenerating, setIsGenerating] = useState(false);
   const dispatch = useAppDispatch();
@@ -104,15 +126,28 @@ export function useChat() {
       return [trimmed, null];
     }
 
-    // Only split at a comma (natural pause). Word-boundary splits here caused
-    // broken phrases (e.g. "… each" + "other …") and awkward avatar segments.
+    // Only split at a comma when both sides are substantial — otherwise the avatar
+    // gets two lip-sync passes for one human thought (e.g. "Hi again," + "What's up?").
+    if (trimmed.length <= FAST_SPLIT_MAX_TOTAL_CHARS) {
+      return [trimmed, null];
+    }
+
     const commaIdx = trimmed.indexOf(',');
-    if (commaIdx >= 12 && commaIdx <= FAST_FIRST_SEGMENT_MAX_CHARS + 10) {
-      const first = trimmed.slice(0, commaIdx + 1).trim();
-      const rest = trimmed.slice(commaIdx + 1).trim();
-      if (first.split(/\s+/).filter(Boolean).length >= FAST_FIRST_SEGMENT_MIN_WORDS && rest) {
-        return [first, rest];
-      }
+    const maxComma = FAST_FIRST_SEGMENT_MAX_CHARS + 10;
+    if (commaIdx < FAST_SPLIT_MIN_COMMA_INDEX || commaIdx > maxComma) {
+      return [trimmed, null];
+    }
+
+    const first = trimmed.slice(0, commaIdx + 1).trim();
+    const rest = trimmed.slice(commaIdx + 1).trim();
+    const firstWords = countWords(first);
+    const restWords = countWords(rest);
+    if (
+      firstWords >= FAST_SPLIT_MIN_WORDS_BEFORE_COMMA &&
+      rest.length >= FAST_SPLIT_MIN_REST_CHARS &&
+      restWords >= FAST_SPLIT_MIN_REST_WORDS
+    ) {
+      return [first, rest];
     }
 
     return [trimmed, null];
@@ -409,6 +444,8 @@ export function useChat() {
                 const tail = words.slice(cut).join(' ').trim();
                 // Don't early-submit very short fragments; they frequently cause 2-part speech.
                 if (phrase.length < MIN_SEGMENT_CHARS) return;
+                // Wait for more stream tokens instead of cutting at a comma / clause boundary.
+                if (endsWithIncompleteClauseBoundary(phrase)) return;
                 sentenceBuffer = tail ? `${tail} ` : '';
                 PerfLogger.mark(t, 'first-sentence-queued (early)', { phrase: phrase.substring(0, 40), words: wordCount });
                 firstSentenceDispatched = true;
